@@ -1,3 +1,4 @@
+// 🐣 Tower Defense: Hawk too — A Tower Defense
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -15,19 +16,53 @@ let eggX = 9.5, eggY = 9.5;
 let towers = [], walls = [], bombs = [], enemies = [], bullets = [];
 let feathers = 30, paused = false, gameTimer = 0;
 let enemySpawnCooldown = 0;
-let maxActiveEnemies = 5;
+let maxActiveEnemies = 2;
 let eggCarried = false;
 let eggCarrier = null;
 let mainTowerCooldown = 0;
+let gameEnded = false;
+
+/*const grassSprite = new Image();
+grassSprite.src = 'assets/environment/tile_grass.png';
+
+const eggSprite = new Image();
+eggSprite.src = 'assets/player/egg.png';
+
+const towerSprite = new Image();
+towerSprite.src = 'assets/defenses/tower_placeable.png';
+
+const bulletSprite = new Image();
+bulletSprite.src = 'assets/bullets/bullet.png';
+
+const featherSprite = new Image();
+featherSprite.src = 'assets/currency/feather.png';
+
+const wallSprite = new Image();
+wallSprite.src = 'assets/defencses/wall_placeable.png';
+
+const bombSprite = new Image();
+bombSprite.src = 'assets/defenses/bomb_placeable.png';
+
+const eagleSprites = {
+    small: new Image(),
+    buff: new Image(),
+    fast: new Image()
+};
+eagleSprites.small.src = 'assets/enemies/eagle_scrawny.png';
+eagleSprites.buff.src = 'assets/enemies/eagle_buff.png';
+eagleSprites.fast.src = 'assets/enemies/eagle_fast.png';*/
+
 
 document.addEventListener('keydown', (e) => {
-  if (e.key.toLowerCase() === 'f') {
+  if (e.key.toLowerCase() === 'f' && !gameEnded) {
     paused = !paused;
     document.getElementById('pauseMenu').style.display = paused ? 'block' : 'none';
   }
 });
 
 canvas.addEventListener('click', (e) => {
+  if (gameEnded) return;
+
   const rect = canvas.getBoundingClientRect();
   const mouseX = e.clientX - rect.left;
   const mouseY = e.clientY - rect.top;
@@ -46,15 +81,58 @@ canvas.addEventListener('click', (e) => {
     return;
   }
 
+  if (selectedTool === 'remove') {
+    for (let i = 0; i < towers.length; i++) {
+      if (towers[i].x === gridX && towers[i].y === gridY) {
+        towers.splice(i, 1);
+        return;
+      }
+    }
+    for (let i = 0; i < walls.length; i++) {
+      if (walls[i].x === gridX && walls[i].y === gridY) {
+        walls.splice(i, 1);
+        return;
+      }
+    }
+    return;
+  }
+
   if (selectedTool === 'tower' && feathers >= 10) {
     towers.push({ x: gridX, y: gridY, hp: 1, cooldown: 5 });
     feathers -= 10;
   } else if (selectedTool === 'wall' && feathers >= 5) {
-    walls.push({ x: gridX, y: gridY, hp: 3, cooldown: 2 });
+    walls.push({ x: gridX, y: gridY, hp: 3 });
     feathers -= 5;
   } else if (selectedTool === 'bomb' && feathers >= 15) {
-    bombs.push({ x: gridX, y: gridY, timer: 1, cooldown: 15 });
+    bombs.push({ x: gridX, y: gridY, timer: 1 });
     feathers -= 15;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (gameEnded || paused) return;
+
+  switch (e.key) {
+    case '1':
+      document.querySelector('input[value="tower"]').checked = true;
+      selectedTool = 'tower';
+      break;
+    case '2':
+      document.querySelector('input[value="wall"]').checked = true;
+      selectedTool = 'wall';
+      break;
+    case '3':
+      document.querySelector('input[value="bomb"]').checked = true;
+      selectedTool = 'bomb';
+      break;
+    case '4':
+      document.querySelector('input[value="remove"]').checked = true;
+      selectedTool = 'remove';
+      break;
+    case ' ':
+      e.preventDefault();
+      shootOnlyToggle.checked = !shootOnlyToggle.checked;
+      break;
   }
 });
 
@@ -64,65 +142,49 @@ function spawnEnemy() {
   const rand = Math.random();
   let type, hp, speed, color;
 
-  if (rand < 0.6) { // 60% chance
-    type = 'scrawny';
-    hp = 2;
-    speed = 1;
-    color = '#00f';
-  } else if (rand < 0.85) { // 25% chance
-    type = 'fast';
-    hp = 1;
-    speed = 3;
-    color = '#0ff';
-  } else { // 15% chance
-    type = 'buff';
-    hp = 5;
-    speed = 0.75;
-    color = '#800080';
+  if (gameTimer < 50) {
+    type = 'scrawny'; hp = 2; speed = 1; color = '#00f';
+  } else {
+    if (rand < 0.6) {
+      type = 'scrawny'; hp = 2; speed = 1; color = '#00f';
+    } else if (rand < 0.85) {
+      type = 'fast'; hp = 1; speed = 3; color = '#0ff';
+    } else {
+      type = 'buff'; hp = 5; speed = 0.75; color = '#800080';
+    }
   }
 
   let edge = Math.floor(Math.random() * 4);
   let x, y;
-  if (edge === 0) { // top
-    x = Math.random() * canvas.width;
-    y = -30;
-  } else if (edge === 1) { // right
-    x = canvas.width + 30;
-    y = Math.random() * canvas.height;
-  } else if (edge === 2) { // bottom
-    x = Math.random() * canvas.width;
-    y = canvas.height + 30;
-  } else { // left
-    x = -30;
-    y = Math.random() * canvas.height;
-  }
+  if (edge === 0) { x = Math.random() * canvas.width; y = -30; }
+  else if (edge === 1) { x = canvas.width + 30; y = Math.random() * canvas.height; }
+  else if (edge === 2) { x = Math.random() * canvas.width; y = canvas.height + 30; }
+  else { x = -30; y = Math.random() * canvas.height; }
 
   enemies.push({ type, hp, speed, x, y, radius: 32, color, reachedEgg: false });
 }
 
 function updateGame() {
+  if (gameEnded) return;
+
   gameTimer += 1 / 60;
-  if (gameTimer > 600) return;
-
-  // Increase max enemies after 1 minute
-  if (gameTimer >= 60 && maxActiveEnemies < 8) {
-    maxActiveEnemies = 8;
+  if (gameTimer >= 600) {
+    document.getElementById('gameOverMessage').innerText = "The egg has hatched! You win!";
+    document.getElementById('gameOverMenu').style.display = 'block';
+    gameEnded = true;
+    return;
   }
 
-  if (gameTimer >= 120 && maxActiveEnemies < 9) {
-    maxActiveEnemies = 9;
-  }
-
-  if (gameTimer >= 300 && maxActiveEnemies < 10) {
-    maxActiveEnemies = 10;
-  }
+  if (gameTimer >= 60) maxActiveEnemies = 5;
+  if (gameTimer >= 120) maxActiveEnemies = 9;
+  if (gameTimer >= 300) maxActiveEnemies = 10;
 
   if (mainTowerCooldown > 0) mainTowerCooldown -= 1 / 60;
 
   enemySpawnCooldown -= 1 / 60;
   if (enemySpawnCooldown <= 0) {
     spawnEnemy();
-    enemySpawnCooldown = 1.0;
+    enemySpawnCooldown = Math.max(0.5, 1.5 - gameTimer / 300);
   }
 
   bombs = bombs.filter(b => {
@@ -146,29 +208,22 @@ function updateGame() {
     const dy = centerY - e.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Wall collision
     for (let w of walls) {
       const wx = w.x * TILE_SIZE + TILE_SIZE / 2;
       const wy = w.y * TILE_SIZE + TILE_SIZE / 2;
-      const wDist = Math.hypot(e.x - wx, e.y - wy);
-      if (wDist < TILE_SIZE / 2) {
+      if (Math.hypot(e.x - wx, e.y - wy) < TILE_SIZE / 2) {
         w.hp -= 0.01;
-        if (w.hp <= 0) {
-          walls.splice(walls.indexOf(w), 1);
-        }
+        if (w.hp <= 0) walls.splice(walls.indexOf(w), 1);
         return true;
       }
     }
 
-    for (let w of towers) {
-      const wx = w.x * TILE_SIZE + TILE_SIZE / 2;
-      const wy = w.y * TILE_SIZE + TILE_SIZE / 2;
-      const wDist = Math.hypot(e.x - wx, e.y - wy);
-      if (wDist < TILE_SIZE / 2) {
-        w.hp -= 0.01;
-        if (w.hp <= 0) {
-          towers.splice(towers.indexOf(w), 1);
-        }
+    for (let t of towers) {
+      const tx = t.x * TILE_SIZE + TILE_SIZE / 2;
+      const ty = t.y * TILE_SIZE + TILE_SIZE / 2;
+      if (Math.hypot(e.x - tx, e.y - ty) < TILE_SIZE / 2) {
+        t.hp -= 0.01;
+        if (t.hp <= 0) towers.splice(towers.indexOf(t), 1);
         return true;
       }
     }
@@ -187,18 +242,16 @@ function updateGame() {
       e.y += fleeDy / fleeDist * e.speed;
 
       if (eggCarried && e === eggCarrier && (e.x < -50 || e.x > canvas.width + 50 || e.y < -50 || e.y > canvas.height + 50)) {
-        alert("An eagle escaped with the egg!");
-        location.reload();
+        document.getElementById('gameOverMessage').innerText = "An eagle escaped with the egg!";
+        document.getElementById('gameOverMenu').style.display = 'block';
+        gameEnded = true;
         return false;
       }
-
       return true;
     }
 
-    // Move towards center
     e.x += dx / dist * e.speed;
     e.y += dy / dist * e.speed;
-
     return true;
   });
 
@@ -224,9 +277,7 @@ function updateGame() {
     b.y += b.dy * 10;
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      const dx = b.x - e.x;
-      const dy = b.y - e.y;
-      if (Math.sqrt(dx * dx + dy * dy) < 32) {
+      if (Math.hypot(b.x - e.x, b.y - e.y) < 32) {
         e.hp--;
         if (e.hp <= 0) {
           if (eggCarried && e === eggCarrier) {
@@ -274,7 +325,7 @@ function drawGame() {
 
   walls.forEach(w => {
     ctx.fillStyle = 'gray';
-    ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILESIZE);
+    ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
 
   bombs.forEach(b => {
@@ -298,14 +349,13 @@ function drawGame() {
     ctx.fill();
   });
 
-  ctx.fillStyle = 'white';
   ctx.font = '20px sans-serif';
   ctx.fillText(`Feathers: ${feathers}`, 10, 20);
   ctx.fillText(`Time: ${Math.floor(gameTimer)}s`, 10, 45);
 }
 
 function gameLoop() {
-  if (!paused) {
+  if (!paused && !gameEnded) {
     updateGame();
     drawGame();
   }
@@ -322,3 +372,5 @@ function restartGame() {
 }
 
 gameLoop();
+
+

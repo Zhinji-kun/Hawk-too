@@ -1,49 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Hawk too: A Tower Defense</title>
   <style>
-    canvas {
-      background: #222;
-      display: block;
-      margin: 0 auto;
-      border: 2px solid white;
-    }
-    #controls {
-      text-align: center;
-      margin: 10px;
-      color: white;
-    }
-    #pauseMenu {
-      display: none;
+    body { margin: 0; background: black; color: white; font-family: sans-serif; }
+    #gameCanvas { display: block; margin: 0 auto; background: #111; }
+    .menu {
       position: absolute;
-      top: 30%;
-      left: 40%;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 30px;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #333;
+      padding: 20px;
       color: white;
       text-align: center;
+      z-index: 10;
     }
-    body {
-      background: #111;
-      font-family: sans-serif;
-    }
+    button { margin: 5px; padding: 10px; }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <label><input type="radio" name="tool" value="tower" checked> Tower (10 Feathers)</label>
-    <label><input type="radio" name="tool" value="wall"> Wall (5 Feathers)</label>
-    <label><input type="radio" name="tool" value="bomb"> Bomb (15 Feathers)</label>
-    <label><input type="checkbox" id="shootOnlyToggle"> Shooting Only Mode</label>
-  </div>
   <canvas id="gameCanvas" width="1280" height="1280"></canvas>
-  <div id="pauseMenu">
-    <h2>Game Paused</h2>
+
+  <div style="position:absolute; top:10px; left:10px; z-index:5;">
+    <label><input type="radio" name="tool" value="tower" checked> Tower</label>
+    <label><input type="radio" name="tool" value="wall"> Wall</label>
+    <label><input type="radio" name="tool" value="bomb"> Bomb</label>
+    <label><input type="radio" name="tool" value="remove"> Remove</label>
+    <label><input type="checkbox" id="shootOnlyToggle"> Shoot Only</label>
+  </div>
+  
+
+  <!-- Pause Menu -->
+  <div id="pauseMenu" class="menu" style="display:none;">
+    <p>Game Paused</p>
     <button onclick="resumeGame()">Resume</button>
     <button onclick="restartGame()">Restart</button>
   </div>
+
+  <!-- Game Over Menu -->
+  <div id="gameOverMenu" class="menu" style="display:none; background:#400;">
+    <p id="gameOverMessage"></p>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
