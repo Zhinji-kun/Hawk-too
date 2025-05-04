@@ -1,0 +1,33 @@
+body {
+    background: #222;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+    margin: 0;
+  }
+  canvas {
+    display: block;
+    margin: 20px auto;
+    border: 2px solid white;
+    width: 90vw;
+    max-width: 800px;
+    height: auto;
+  }
+  #toolbar {
+    margin: 10px;
+  }
+  .paused-menu {
+    display: none;
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border: 2px solid white;
+  }
+  .paused-menu button {
+    display: block;
+    margin: 10px auto;
+  }
+  
