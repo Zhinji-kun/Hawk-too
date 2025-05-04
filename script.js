@@ -6,6 +6,7 @@ const TILE_SIZE = 64;
 const GRID_WIDTH = 20;
 const GRID_HEIGHT = 20;
 
+
 let selectedTool = 'tower';
 document.querySelectorAll('input[name="tool"]').forEach(radio => {
   radio.addEventListener('change', e => selectedTool = e.target.value);
@@ -22,7 +23,8 @@ let eggCarrier = null;
 let mainTowerCooldown = 0;
 let gameEnded = false;
 
-/*const grassSprite = new Image();
+
+const grassSprite = new Image();
 grassSprite.src = 'assets/environment/tile_grass.png';
 
 const eggSprite = new Image();
@@ -38,19 +40,29 @@ const featherSprite = new Image();
 featherSprite.src = 'assets/currency/feather.png';
 
 const wallSprite = new Image();
-wallSprite.src = 'assets/defencses/wall_placeable.png';
+wallSprite.src = 'assets/defenses/wall_placeable.png';
 
 const bombSprite = new Image();
 bombSprite.src = 'assets/defenses/bomb_placeable.png';
 
-const eagleSprites = {
-    small: new Image(),
-    buff: new Image(),
-    fast: new Image()
+const mainTower = {
+  x: canvas.width / 2,
+  y: canvas.height / 2,
+  angle: 0,
+  sprite: new Image()
 };
-eagleSprites.small.src = 'assets/enemies/eagle_scrawny.png';
+mainTower.sprite.src = 'assets/player/main_tower_aiming.png';
+
+
+const eagleSprites = {
+  scrawny: new Image(),
+  buff: new Image(),
+  fast: new Image()
+};
+eagleSprites.scrawny.src = 'assets/enemies/eagle_scrawny.png';
 eagleSprites.buff.src = 'assets/enemies/eagle_buff.png';
-eagleSprites.fast.src = 'assets/enemies/eagle_fast.png';*/
+eagleSprites.fast.src = 'assets/enemies/eagle_fast.png';
+
 
 
 document.addEventListener('keydown', (e) => {
@@ -263,6 +275,7 @@ function updateGame() {
       for (let e of enemies) {
         const dx = e.x - tx;
         const dy = e.y - ty;
+        mainTower.angle = Math.atan2(dy, dx);
         if (Math.sqrt(dx * dx + dy * dy) < 200) {
           bullets.push({ x: tx, y: ty, dx: dx / 20, dy: dy / 20 });
           t.cooldown = 1.5;
@@ -297,6 +310,13 @@ function updateGame() {
 function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Draw grass tiles as background
+  for (let i = 0; i < GRID_WIDTH; i++) {
+    for (let j = 0; j < GRID_HEIGHT; j++) {
+      ctx.drawImage(grassSprite, i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+
   ctx.strokeStyle = '#444';
   for (let i = 0; i <= GRID_WIDTH; i++) {
     ctx.beginPath();
@@ -312,47 +332,51 @@ function drawGame() {
   }
 
   if (!eggCarried) {
-    ctx.fillStyle = 'yellow';
-    ctx.beginPath();
-    ctx.arc(eggX * TILE_SIZE + TILE_SIZE / 2, eggY * TILE_SIZE + TILE_SIZE / 2, 20, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(eggSprite, eggX * TILE_SIZE, eggY * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   }
 
   towers.forEach(t => {
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(t.x * TILE_SIZE, t.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.drawImage(towerSprite, t.x * TILE_SIZE, t.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
 
   walls.forEach(w => {
-    ctx.fillStyle = 'gray';
-    ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.drawImage(wallSprite, w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
 
   bombs.forEach(b => {
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(b.x * TILE_SIZE + TILE_SIZE / 2, b.y * TILE_SIZE + TILE_SIZE / 2, 10, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(bombSprite, b.x * TILE_SIZE, b.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
 
   enemies.forEach(e => {
-    ctx.fillStyle = e.color;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-    ctx.fill();
+    let sprite;
+if (e.type === 'scrawny') sprite = eagleSprites.scrawny;
+else if (e.type === 'buff') sprite = eagleSprites.buff;
+else if (e.type === 'fast') sprite = eagleSprites.fast;
+
+ctx.drawImage(sprite, e.x - TILE_SIZE / 2, e.y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+
   });
 
-  ctx.fillStyle = 'white';
   bullets.forEach(b => {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(bulletSprite, b.x - 9.5, b.y - 9.5, 64, 64);
   });
-
+  
   ctx.font = '20px sans-serif';
   ctx.fillText(`Feathers: ${feathers}`, 10, 20);
   ctx.fillText(`Time: ${Math.floor(gameTimer)}s`, 10, 45);
+
+  drawRotatedImage(mainTower.sprite, mainTower.x, mainTower.y, mainTower.angle);
+
 }
+
+function drawRotatedImage(img, x, y, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.drawImage(img, -32, -32, 64, 64); // center the 64x64 image
+  ctx.restore();
+}
+
 
 function gameLoop() {
   if (!paused && !gameEnded) {
